@@ -1,0 +1,8 @@
+envious
+=======
+
+Add option to expand command line arguments given as a single string by `bash` to GNU `coreutils`' `env`.
+
+What's in this distribution
+---------------------------
+The file env.c.patch is a context diff.
