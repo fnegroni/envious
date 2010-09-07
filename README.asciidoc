@@ -6,3 +6,8 @@ Add option to expand command line arguments given as a single string by `bash` t
 What's in this distribution
 ---------------------------
 The file env.c.patch is a context diff.
+
+Version of GNU `coreutils` the patch is compatible with
+-------------------------------------------------------
+
+GNU `coreutils` version 8.5
