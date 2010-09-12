@@ -1,0 +1,85 @@
+From 7f5f772886c5a113be1edb86c94d10ceb1932142 Mon Sep 17 00:00:00 2001
+From: Filippo Erik Negroni <f.e.negroni@googlemail.com>
+Date: Sun, 12 Sep 2010 01:20:34 +0100
+Subject: [PATCH] envious -- patch for coreutils env, based on v8.5
+
+This patch allows env to split the command line arguments passed to it by an executable script.
+---
+ src/env.c |   50 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 50 insertions(+), 0 deletions(-)
+
+diff --git a/src/env.c b/src/env.c
+index ca54a4a..75f9c9b 100644
+--- a/src/env.c
++++ b/src/env.c
+@@ -20,10 +20,13 @@
+ #include <stdio.h>
+ #include <sys/types.h>
+ #include <getopt.h>
++#include <string.h> /* strdup, */
++#include <ctype.h> /* isspace, */
+ 
+ #include "system.h"
+ #include "error.h"
+ #include "quote.h"
++#include "libgen.h" /* basename, */
+ 
+ /* The official name of this program (e.g., no `g' prefix).  */
+ #define PROGRAM_NAME "env"
+@@ -146,6 +149,53 @@ main (int argc, char **argv)
+       usage (EXIT_CANCELED);
+     }
+ 
++  /*
++  At this point, if env is invoked from a shell script, the arguments will be concatenated in a single blank-separated string.
++  If the name of the executable is 'envious', then we split the single argument string reforming a new array of null separated arguments.
++  */
++
++  char *copyof_program_name = xstrdup (program_name);
++  if (! strcmp (basename (copyof_program_name), "envious"))
++    {
++      /* Perform a shell like split of the argument containing the program to invoke. */
++
++      int new_argc, argv_idx;
++      char *p, **new_argv;
++
++      /* optind tells us how many options we should not carry over. */
++      new_argc = argc - optind;
++
++      /* Figure out how many arguments are embedded in the argument. */
++      for (p = argv[optind]; *p; ++p)
++        {
++          if (isspace (*p)) ++new_argc;
++        }
++
++      /* Remember to include last pointer to nul string. */
++      new_argv = xmalloc ((1 + new_argc) * sizeof (char *));
++
++      new_argv[0] = argv[optind];
++
++      for (p = new_argv[0], argv_idx = 0; *p; ++p)
++        {
++          if (isspace (*p))
++            {
++              *p = '\0';
++              new_argv[++argv_idx] = p+1;
++            }
++        }
++
++      /* Copy remaining arguments, including pointer to nul string. */
++      while (optind <= argc)
++        {
++          new_argv[++argv_idx] = argv[++optind];
++        }
++
++      /* Use our new argv for execvp. */
++      argv = new_argv;
++      optind = 0;
++    }
++
+   execvp (argv[optind], &argv[optind]);
+ 
+   {
+-- 
+1.7.0.5
+
